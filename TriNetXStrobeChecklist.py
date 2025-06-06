@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 import pdfkit
 import tempfile
 import os
@@ -30,141 +31,135 @@ STROBE_ITEMS = [
     {"section": "Other Information", "item": "22. Give the source of funding and the role of the funders for the present study and, if applicable, for the original study on which the present article is based.", "guidance": "State how the study was funded and any role of the sponsor.", "link": "https://www.strobe-statement.org/checklists/"},
 ]
 
-st.set_page_config(page_title="STROBE Self-Assessment for TriNetX", layout="wide")
-st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects")
+st.set_page_config(page_title="STROBE Compact Self-Assessment", layout="wide")
+st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Compact Table)")
 
 st.markdown("""
-Evaluate your observational study using the full **STROBE Statement** checklist.
-- Score each item 1 (not addressed), 2 (partially addressed), or 3 (fully addressed).
-- Add comments if you wish.
-- Download your completed checklist as a PDF or CSV.
-- At the end, you’ll get a summary of strengths and areas for improvement.
-[Full STROBE guidance](https://www.strobe-statement.org/index.php?id=available-checklists)
+This tool helps you assess your TriNetX project using the full STROBE checklist in a single compact table.  
+- **Score**: 1 (Not addressed), 2 (Partially), 3 (Fully addressed)  
+- **Add comments** in-line  
+- **Click a row** to see detailed guidance  
+- **Export results** as CSV or PDF  
 """)
 
-if 'scores' not in st.session_state:
-    st.session_state.scores = [2]*len(STROBE_ITEMS)
-if 'comments' not in st.session_state:
-    st.session_state.comments = [""]*len(STROBE_ITEMS)
+# Prepare DataFrame for grid
+df = pd.DataFrame([
+    {
+        "Section": item["section"],
+        "Checklist Item": item["item"],
+        "Score": 2,
+        "Comments": "",
+        "Guidance": item["guidance"],
+        "Link": item["link"],
+    }
+    for item in STROBE_ITEMS
+])
 
-score_labels = {
-    1: "1 = Not addressed",
-    2: "2 = Partially addressed",
-    3: "3 = Fully addressed"
-}
+# Build grid options
+gb = GridOptionsBuilder.from_dataframe(df)
+gb.configure_column("Score", editable=True, cellEditor='agSelectCellEditor',
+                    cellEditorParams={'values': [1, 2, 3]})
+gb.configure_column("Comments", editable=True)
+gb.configure_column("Checklist Item", width=420, wrapText=True, autoHeight=True)
+gb.configure_column("Guidance", hide=True)
+gb.configure_column("Link", hide=True)
+gb.configure_selection(selection_mode="single", use_checkbox=True)
+gridOptions = gb.build()
 
-with st.form("strobe_form"):
-    st.write("### Checklist")
-    for idx, item in enumerate(STROBE_ITEMS):
-        st.markdown(f"**{item['section']}** — [{item['item']}]({item['link']})")
-        with st.expander(f"Guidance for item {idx+1}", expanded=False):
-            st.write(item["guidance"])
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            score = st.radio(
-                f"Score (1–3) for item {idx+1}",
-                [1, 2, 3],
-                format_func=lambda x: score_labels[x],
-                key=f"score_{idx}",
-                index=st.session_state.scores[idx]-1
-            )
-        with col2:
-            comment = st.text_area(
-                f"Comments for item {idx+1}",
-                value=st.session_state.comments[idx],
-                key=f"comment_{idx}"
-            )
-        st.session_state.scores[idx] = score
-        st.session_state.comments[idx] = comment
-        st.markdown("---")
-    submitted = st.form_submit_button("Submit Self-Assessment")
+# Display grid
+response = AgGrid(
+    df,
+    gridOptions=gridOptions,
+    update_mode=GridUpdateMode.VALUE_CHANGED | GridUpdateMode.SELECTION_CHANGED,
+    fit_columns_on_grid_load=True,
+    allow_unsafe_jscode=True,
+    height=600,
+    theme="streamlit"
+)
 
-if submitted:
-    df = pd.DataFrame([
-        {
-            "Section": item["section"],
-            "Checklist Item": item["item"],
-            "Score": st.session_state.scores[idx],
-            "Comments": st.session_state.comments[idx],
-            "Guidance Link": item["link"]
-        }
-        for idx, item in enumerate(STROBE_ITEMS)
-    ])
-    st.success("Assessment Complete!")
-    st.dataframe(df)
+# Guidance for selected row
+selected = response["selected_rows"]
+if selected:
+    st.info(f"**Guidance for selected item:**\n\n{selected[0]['Guidance']}\n\n[More Info]({selected[0]['Link']})")
 
-    percent_fully = round(100 * sum(s == 3 for s in st.session_state.scores) / len(STROBE_ITEMS), 1)
-    st.write(f"**Percent fully addressed:** {percent_fully}%")
-    st.write(f"**Average score:** {round(sum(st.session_state.scores)/len(STROBE_ITEMS), 2)} / 3")
+# Compile new DataFrame
+df_updated = pd.DataFrame(response['data'])
 
-    low_score_idxs = [i for i, s in enumerate(st.session_state.scores) if s < 3]
-    if low_score_idxs:
-        st.warning("### Areas for Improvement")
-        for i in low_score_idxs:
-            st.markdown(
-                f"- **{STROBE_ITEMS[i]['section']}**: [{STROBE_ITEMS[i]['item']}]({STROBE_ITEMS[i]['link']})\n"
-                f"  - Guidance: {STROBE_ITEMS[i]['guidance']}\n"
-                f"  - Your score: {st.session_state.scores[i]}\n"
-                f"  - Your comment: {st.session_state.comments[i]}"
-            )
+# Summarize scores
+percent_fully = round(100 * (df_updated["Score"] == 3).sum() / len(df_updated), 1)
+st.write(f"**Percent fully addressed:** {percent_fully}%")
+st.write(f"**Average score:** {round(df_updated['Score'].mean(), 2)} / 3")
+
+low_score_df = df_updated[df_updated["Score"] < 3]
+if not low_score_df.empty:
+    st.warning("### Areas for Improvement")
+    for idx, row in low_score_df.iterrows():
+        st.markdown(
+            f"- **{row['Section']}**: {row['Checklist Item']}\n"
+            f"  - Guidance: {row['Guidance']}\n"
+            f"  - Your score: {row['Score']}\n"
+            f"  - Your comment: {row['Comments']}"
+        )
+else:
+    st.success("All items fully addressed! ✅")
+
+# Download as CSV
+csv = df_updated.to_csv(index=False).encode()
+st.download_button(
+    label="📥 Download as CSV",
+    data=csv,
+    file_name="strobe_self_assessment.csv",
+    mime="text/csv",
+)
+
+# PDF Export
+def df_to_html(df, low_score_df):
+    html = f"""
+    <html>
+    <head>
+        <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; }}
+        table {{ border-collapse: collapse; width: 100%; }}
+        th, td {{ border: 1px solid #ccc; padding: 8px; }}
+        th {{ background-color: #f2f2f2; }}
+        </style>
+    </head>
+    <body>
+    <h1>STROBE Self-Assessment Results</h1>
+    {df.to_html(index=False, escape=False)}
+    <h2>Areas for Improvement</h2>
+    """
+    if not low_score_df.empty:
+        html += "<ul>"
+        for idx, row in low_score_df.iterrows():
+            html += f"<li><b>{row['Section']}</b>: {row['Checklist Item']}<br>"
+            html += f"Guidance: {row['Guidance']}<br>"
+            html += f"Your score: {row['Score']}<br>"
+            html += f"Your comment: {row['Comments']}</li><br>"
+        html += "</ul>"
     else:
-        st.success("All items fully addressed! ✅")
+        html += "<p>All items fully addressed! ✅</p>"
+    html += "</body></html>"
+    return html
 
-    csv = df.to_csv(index=False).encode()
-    st.download_button(
-        label="📥 Download as CSV",
-        data=csv,
-        file_name="strobe_self_assessment.csv",
-        mime="text/csv",
-    )
-
-    def df_to_html(df):
-        html = f"""
-        <html>
-        <head>
-            <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; }}
-            table {{ border-collapse: collapse; width: 100%; }}
-            th, td {{ border: 1px solid #ccc; padding: 8px; }}
-            th {{ background-color: #f2f2f2; }}
-            </style>
-        </head>
-        <body>
-        <h1>STROBE Self-Assessment Results</h1>
-        {df.to_html(index=False, escape=False)}
-        <h2>Areas for Improvement</h2>
-        """
-        if low_score_idxs:
-            html += "<ul>"
-            for i in low_score_idxs:
-                html += f"<li><b>{STROBE_ITEMS[i]['section']}</b>: {STROBE_ITEMS[i]['item']}<br>"
-                html += f"Guidance: {STROBE_ITEMS[i]['guidance']}<br>"
-                html += f"Your score: {st.session_state.scores[i]}<br>"
-                html += f"Your comment: {st.session_state.comments[i]}</li><br>"
-            html += "</ul>"
-        else:
-            html += "<p>All items fully addressed! ✅</p>"
-        html += "</body></html>"
-        return html
-
-    if st.button("📄 Download as PDF"):
-        with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tf:
-            html = df_to_html(df)
-            tf.write(html.encode())
-            tf.flush()
-            pdf_path = tf.name.replace(".html", ".pdf")
-            try:
-                pdfkit.from_file(tf.name, pdf_path)
-                with open(pdf_path, "rb") as pdf_file:
-                    st.download_button(
-                        label="Download PDF",
-                        data=pdf_file.read(),
-                        file_name="strobe_self_assessment.pdf",
-                        mime="application/pdf"
-                    )
-                os.remove(pdf_path)
-            except Exception as e:
-                st.error(f"PDF generation failed: {e}. "
-                         "Is `wkhtmltopdf` installed on the server? (Try CSV instead.)")
-            finally:
-                os.remove(tf.name)
+if st.button("📄 Download as PDF"):
+    with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tf:
+        html = df_to_html(df_updated, low_score_df)
+        tf.write(html.encode())
+        tf.flush()
+        pdf_path = tf.name.replace(".html", ".pdf")
+        try:
+            pdfkit.from_file(tf.name, pdf_path)
+            with open(pdf_path, "rb") as pdf_file:
+                st.download_button(
+                    label="Download PDF",
+                    data=pdf_file.read(),
+                    file_name="strobe_self_assessment.pdf",
+                    mime="application/pdf"
+                )
+            os.remove(pdf_path)
+        except Exception as e:
+            st.error(f"PDF generation failed: {e}. "
+                     "Is `wkhtmltopdf` installed on the server? (Try CSV instead.)")
+        finally:
+            os.remove(tf.name)
