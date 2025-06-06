@@ -4,7 +4,7 @@ import pdfkit
 import tempfile
 import os
 
-# ---- Full STROBE Checklist with Guidance and Links ----
+# ---- Full, clean STROBE Checklist ----
 STROBE_ITEMS = [
     {"section": "Title and Abstract", "item": "1. Indicate the study’s design with a commonly used term in the title or the abstract.", "guidance": "Clearly state the study design (e.g., cohort, case-control, cross-sectional) in the title or abstract.", "link": "https://www.strobe-statement.org/checklists/"},
     {"section": "Title and Abstract", "item": "2. Provide in the abstract an informative and balanced summary of what was done and what was found.", "guidance": "Summarize study purpose, methods, key results, and conclusions in the abstract.", "link": "https://www.strobe-statement.org/checklists/"},
@@ -42,7 +42,6 @@ Evaluate your observational study using the full **STROBE Statement** checklist.
 [Full STROBE guidance](https://www.strobe-statement.org/index.php?id=available-checklists)
 """)
 
-# Set up persistent session state
 if 'scores' not in st.session_state:
     st.session_state.scores = [2]*len(STROBE_ITEMS)
 if 'comments' not in st.session_state:
@@ -75,13 +74,11 @@ with st.form("strobe_form"):
                 value=st.session_state.comments[idx],
                 key=f"comment_{idx}"
             )
-        # Save to session
         st.session_state.scores[idx] = score
         st.session_state.comments[idx] = comment
         st.markdown("---")
     submitted = st.form_submit_button("Submit Self-Assessment")
 
-# --- Compile results ---
 if submitted:
     df = pd.DataFrame([
         {
@@ -100,7 +97,6 @@ if submitted:
     st.write(f"**Percent fully addressed:** {percent_fully}%")
     st.write(f"**Average score:** {round(sum(st.session_state.scores)/len(STROBE_ITEMS), 2)} / 3")
 
-    # --- Areas for improvement summary ---
     low_score_idxs = [i for i, s in enumerate(st.session_state.scores) if s < 3]
     if low_score_idxs:
         st.warning("### Areas for Improvement")
@@ -114,7 +110,6 @@ if submitted:
     else:
         st.success("All items fully addressed! ✅")
 
-    # --- Download options ---
     csv = df.to_csv(index=False).encode()
     st.download_button(
         label="📥 Download as CSV",
@@ -123,9 +118,7 @@ if submitted:
         mime="text/csv",
     )
 
-    # --- PDF Export (using pdfkit, must have wkhtmltopdf installed on server) ---
     def df_to_html(df):
-        # Simple HTML template
         html = f"""
         <html>
         <head>
