@@ -2,9 +2,8 @@ import streamlit as st
 import pandas as pd
 from collections import defaultdict
 
-# 22 STROBE checklist items grouped by section, with tag options for feedback
+# ---- FULL STROBE ITEMS ----
 STROBE_ITEMS = [
-    # TITLE AND ABSTRACT (2 items)
     {
         "section": "Title and Abstract",
         "item": "Indicate the study’s design with a commonly used term in the title or the abstract.",
@@ -27,7 +26,6 @@ STROBE_ITEMS = [
             "The abstract gives a clear, informative, and balanced summary."
         ]
     },
-    # INTRODUCTION (2 items)
     {
         "section": "Introduction",
         "item": "Explain the scientific background and rationale for the investigation being reported.",
@@ -50,7 +48,6 @@ STROBE_ITEMS = [
             "Objectives and hypotheses are clearly stated and specific."
         ]
     },
-    # METHODS (8 items)
     {
         "section": "Methods",
         "item": "Present key elements of study design early in the paper.",
@@ -139,7 +136,6 @@ STROBE_ITEMS = [
             "All statistical methods, confounding, and missing data approaches are detailed."
         ]
     },
-    # RESULTS (5 items)
     {
         "section": "Results",
         "item": "Report numbers of individuals at each stage of study (e.g., eligible, included, follow-up, analyzed). Give reasons for non-participation at each stage. Consider use of a flow diagram.",
@@ -195,7 +191,6 @@ STROBE_ITEMS = [
             "All secondary, subgroup, and sensitivity analyses are clearly reported."
         ]
     },
-    # DISCUSSION (4 items)
     {
         "section": "Discussion",
         "item": "Summarize key results with reference to study objectives.",
@@ -240,7 +235,6 @@ STROBE_ITEMS = [
             "Generalizability and external validity are clearly discussed."
         ]
     },
-    # OTHER INFORMATION (1 item)
     {
         "section": "Other Information",
         "item": "Give the source of funding and the role of the funders for the present study and, if applicable, for the original study on which the present article is based.",
@@ -255,38 +249,66 @@ STROBE_ITEMS = [
 ]
 
 score_labels = {1: "1 = Not addressed", 2: "2 = Partially", 3: "3 = Fully addressed"}
+score_colors = {1: "#e74c3c", 2: "#f1c40f", 3: "#2ecc40"}  # Red, Yellow, Green
 
-if "scores" not in st.session_state:
-    st.session_state.scores = [2] * len(STROBE_ITEMS)
-if "comments" not in st.session_state:
-    st.session_state.comments = [""] * len(STROBE_ITEMS)
-if "selected_tags" not in st.session_state:
-    st.session_state.selected_tags = [[] for _ in STROBE_ITEMS]
-if "manual_comment_edit" not in st.session_state:
-    st.session_state.manual_comment_edit = [False] * len(STROBE_ITEMS)
+# --- Session State ---
+n_items = len(STROBE_ITEMS)
+if "scores" not in st.session_state or len(st.session_state.scores) != n_items:
+    st.session_state.scores = [2] * n_items
+if "comments" not in st.session_state or len(st.session_state.comments) != n_items:
+    st.session_state.comments = [""] * n_items
+if "selected_tags" not in st.session_state or len(st.session_state.selected_tags) != n_items:
+    st.session_state.selected_tags = [[] for _ in range(n_items)]
+if "manual_comment_edit" not in st.session_state or len(st.session_state.manual_comment_edit) != n_items:
+    st.session_state.manual_comment_edit = [False] * n_items
 
-st.set_page_config(page_title="STROBE Self-Assessment (Tag/Comment System)", layout="wide")
-st.title("📝 Novak's STROBE Self-Assessment Tool for TriNetX Projects")
+sections = list({item["section"] for item in STROBE_ITEMS})
+if "expand_states" not in st.session_state or len(st.session_state.expand_states) != len(sections):
+    st.session_state.expand_states = [False] * len(sections)
 
-st.markdown("""
-**Instructions:**  
-- Expand each section below and work through each checklist item.
-- Select your score (1 = Not addressed, 2 = Partially, 3 = Fully).
-- For feedback, check one or more relevant tags, or type your own comments below the tags.
-- Download your completed checklist as CSV.
-- Created at the UC Riverside School of Medicine by Dr. Daniel Novak, 2025 
-""")
+st.set_page_config(page_title="STROBE Self-Assessment", layout="wide")
+st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Enhanced UX)")
 
-# Group items by section
+# --- Toolbar ---
+col1, col2, col3 = st.columns([1,2,2])
+with col1:
+    print_mode = st.checkbox("🖨️ Print-Friendly Mode", value=False)
+with col2:
+    show_incomplete_only = st.checkbox("Show only incomplete items (score < 3)", value=False)
+with col3:
+    toc_mode = st.checkbox("📑 Show Table of Contents", value=True)
+
+# Expand/Collapse all buttons
+colA, colB = st.columns(2)
+with colA:
+    if st.button("Expand All Sections"):
+        st.session_state.expand_states = [True] * len(sections)
+with colB:
+    if st.button("Collapse All Sections"):
+        st.session_state.expand_states = [False] * len(sections)
+
+# --- Sidebar: TOC ---
+if toc_mode:
+    st.sidebar.markdown("## 📑 Jump to Section")
+    for i, sec in enumerate(sections):
+        st.sidebar.markdown(f"- [{sec}](#{sec.replace(' ', '-')})", unsafe_allow_html=True)
+
+# --- Group items by section ---
 section_items = defaultdict(list)
 for i, item in enumerate(STROBE_ITEMS):
     section_items[item["section"]].append((i, item))
 
 with st.form("strobe_form"):
     st.markdown("### Self-Assessment Checklist")
-    for section, items in section_items.items():
-        with st.expander(section, expanded=False):  # Collapsed by default!
+    for sec_idx, (section, items) in enumerate(section_items.items()):
+        st.markdown(f'<a name="{section.replace(" ", "-")}"></a>', unsafe_allow_html=True)
+        expanded = st.session_state.expand_states[sec_idx]
+        with st.expander(section, expanded=expanded):
+            any_rendered = False
             for idx, item in items:
+                if show_incomplete_only and st.session_state.scores[idx] == 3:
+                    continue
+                any_rendered = True
                 c1, c2, c3 = st.columns([3, 1, 2])
                 with c1:
                     st.markdown(
@@ -296,37 +318,60 @@ with st.form("strobe_form"):
                     )
                     st.markdown(f"<a href='{item['link']}' style='font-size:0.85em;' target='_blank'>[STROBE Guidance]</a>", unsafe_allow_html=True)
                 with c2:
-                    score = st.selectbox(
-                        "",
-                        [1, 2, 3],
-                        index=st.session_state.scores[idx] - 1,
-                        format_func=lambda x: score_labels[x],
-                        key=f"score_{idx}"
-                    )
-                with c3:
-                    st.markdown("**Select feedback tags:**")
-                    tags = []
-                    for tag_idx, tag in enumerate(item["tag_options"]):
-                        checked = tag in st.session_state.selected_tags[idx]
-                        new_checked = st.checkbox(tag, value=checked, key=f"tag_{idx}_{tag_idx}")
-                        if new_checked:
-                            tags.append(tag)
-                    if not st.session_state.manual_comment_edit[idx]:
-                        comment_val = "; ".join(tags)
-                        st.session_state.comments[idx] = comment_val
-                    st.session_state.selected_tags[idx] = tags
-                    comment_input = st.text_area(
-                        "Comments / Feedback",
-                        value=st.session_state.comments[idx],
-                        key=f"comment_{idx}"
-                    )
-                    if comment_input != "; ".join(st.session_state.selected_tags[idx]):
-                        st.session_state.manual_comment_edit[idx] = True
+                    if not print_mode:
+                        color = score_colors[st.session_state.scores[idx]]
+                        st.markdown(
+                            f"<span style='font-size:1.5em; color:{color};'>●</span>",
+                            unsafe_allow_html=True,
+                        )
+                        score = st.selectbox(
+                            "",
+                            [1, 2, 3],
+                            index=st.session_state.scores[idx] - 1,
+                            format_func=lambda x: score_labels[x],
+                            key=f"score_{idx}"
+                        )
+                        st.session_state.scores[idx] = score
                     else:
-                        st.session_state.manual_comment_edit[idx] = False
-                    st.session_state.comments[idx] = comment_input
-                st.session_state.scores[idx] = score
+                        score = st.session_state.scores[idx]
+                        st.markdown(
+                            f"<span style='font-size:1.1em;'>{score_labels[score]}</span>",
+                            unsafe_allow_html=True,
+                        )
+                with c3:
+                    if not print_mode:
+                        st.markdown("**Select feedback tags:**")
+                        tags = []
+                        for tag_idx, tag in enumerate(item["tag_options"]):
+                            checked = tag in st.session_state.selected_tags[idx]
+                            new_checked = st.checkbox(tag, value=checked, key=f"tag_{idx}_{tag_idx}")
+                            if new_checked:
+                                tags.append(tag)
+                        if not st.session_state.manual_comment_edit[idx]:
+                            comment_val = "; ".join(tags)
+                            st.session_state.comments[idx] = comment_val
+                        st.session_state.selected_tags[idx] = tags
+                        comment_input = st.text_area(
+                            "Comments / Feedback",
+                            value=st.session_state.comments[idx],
+                            key=f"comment_{idx}"
+                        )
+                        if comment_input != "; ".join(st.session_state.selected_tags[idx]):
+                            st.session_state.manual_comment_edit[idx] = True
+                        else:
+                            st.session_state.manual_comment_edit[idx] = False
+                        st.session_state.comments[idx] = comment_input
+                    else:
+                        tags = st.session_state.selected_tags[idx]
+                        if tags:
+                            st.markdown("**Tags:** " + ", ".join(tags))
+                        comment = st.session_state.comments[idx]
+                        if comment:
+                            st.markdown("**Comments:** " + comment)
                 st.markdown("---")
+            if not any_rendered:
+                st.info("All items in this section are fully addressed (score = 3).")
+
     submitted = st.form_submit_button("Submit Self-Assessment")
 
 if submitted:
