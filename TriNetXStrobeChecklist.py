@@ -4,8 +4,254 @@ from collections import defaultdict
 
 # 22 STROBE checklist items grouped by section, with tag options for feedback
 STROBE_ITEMS = [
-    # ... (same checklist items as before; omitted here for brevity) ...
-    # Copy your full STROBE_ITEMS list here from the previous code block
+    # TITLE AND ABSTRACT (2 items)
+    {
+        "section": "Title and Abstract",
+        "item": "Indicate the study’s design with a commonly used term in the title or the abstract.",
+        "guidance": "Clearly state the study design (e.g., cohort, case-control, cross-sectional) in the title or abstract.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "No mention of study design in the title or abstract.",
+            "Study design is referenced but not clearly or consistently.",
+            "Study design is clearly and appropriately stated."
+        ]
+    },
+    {
+        "section": "Title and Abstract",
+        "item": "Provide in the abstract an informative and balanced summary of what was done and what was found.",
+        "guidance": "Summarize study purpose, methods, key results, and conclusions in the abstract.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "The abstract is missing key information about methods or results.",
+            "The abstract provides some summary but is incomplete or unbalanced.",
+            "The abstract gives a clear, informative, and balanced summary."
+        ]
+    },
+    # INTRODUCTION (2 items)
+    {
+        "section": "Introduction",
+        "item": "Explain the scientific background and rationale for the investigation being reported.",
+        "guidance": "Describe why the study was done, with context and relevant literature.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Scientific background and rationale are missing.",
+            "Some background is given but lacks context or sufficient detail.",
+            "Rationale is well described and contextualized with relevant literature."
+        ]
+    },
+    {
+        "section": "Introduction",
+        "item": "State specific objectives, including any prespecified hypotheses.",
+        "guidance": "Clearly state what you set out to do, including hypotheses.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Objectives or hypotheses are not stated.",
+            "Objectives are stated but are vague or hypotheses are missing.",
+            "Objectives and hypotheses are clearly stated and specific."
+        ]
+    },
+    # METHODS (8 items)
+    {
+        "section": "Methods",
+        "item": "Present key elements of study design early in the paper.",
+        "guidance": "Identify the type of study and its key design features.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Key elements of the study design are not presented.",
+            "Some study design elements are given but not early or not all are present.",
+            "Study design and its key features are introduced clearly at the start."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "Describe the setting, locations, and relevant dates, including periods of recruitment, exposure, follow-up, and data collection.",
+        "guidance": "State where and when the study was done.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Setting, locations, or study dates are missing.",
+            "Setting or dates are partially reported.",
+            "All relevant settings, locations, and dates are well described."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "Give the eligibility criteria, and the sources and methods of selection of participants. Describe methods of follow-up. For matched studies, give matching criteria and number of exposed/unexposed.",
+        "guidance": "Explain how participants were identified, included, excluded, and how they were followed up.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Eligibility criteria or selection methods are not described.",
+            "Some eligibility or selection details are given but are incomplete.",
+            "Eligibility criteria and participant selection are fully explained."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "For each variable of interest, give sources of data and details of methods of assessment (measurement).",
+        "guidance": "Describe how each variable was measured or obtained.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Variables or their measurement are not described.",
+            "Some variables or measurement methods are described.",
+            "All variables and measurement methods are described in detail."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "Describe any efforts to address potential sources of bias.",
+        "guidance": "Discuss what you did to minimize bias (e.g., blinding, statistical adjustments).",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "No mention of efforts to address bias.",
+            "Some efforts to reduce bias are described but lack detail.",
+            "Potential sources of bias and mitigation efforts are thoroughly discussed."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "Explain how the study size was arrived at.",
+        "guidance": "Provide rationale for sample size, power calculations if possible.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "No explanation for how the sample size was determined.",
+            "Sample size is mentioned, but rationale or calculations are lacking.",
+            "Sample size rationale and calculations are clearly explained."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "Explain how quantitative variables were handled in the analyses. If applicable, describe which groupings were chosen and why.",
+        "guidance": "Describe handling of quantitative data (e.g., categorized, continuous).",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Handling of quantitative variables is not described.",
+            "Some information on quantitative variables is given but not complete.",
+            "Quantitative variable handling and groupings are well described."
+        ]
+    },
+    {
+        "section": "Methods",
+        "item": "Describe all statistical methods, including those used to control for confounding.",
+        "guidance": "Outline your statistical approach, including confounder adjustment, missing data handling, etc.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Statistical methods are not described.",
+            "Some statistical methods are given but confounders or missing data not addressed.",
+            "All statistical methods, confounding, and missing data approaches are detailed."
+        ]
+    },
+    # RESULTS (5 items)
+    {
+        "section": "Results",
+        "item": "Report numbers of individuals at each stage of study (e.g., eligible, included, follow-up, analyzed). Give reasons for non-participation at each stage. Consider use of a flow diagram.",
+        "guidance": "Show a flow of participant numbers, with reasons for exclusions.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Numbers at each stage are not reported.",
+            "Some numbers or reasons for non-participation are given, but incomplete.",
+            "All numbers and reasons for non-participation are reported, with a flow diagram if applicable."
+        ]
+    },
+    {
+        "section": "Results",
+        "item": "Give characteristics of study participants (e.g., demographic, clinical, social) and information on exposures and potential confounders. Indicate number of participants with missing data for each variable. Summarize follow-up time.",
+        "guidance": "Provide descriptive stats for the sample, and report missing data.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Participant characteristics and missing data are not reported.",
+            "Some characteristics or missing data are reported, but not all.",
+            "All participant characteristics, confounders, and missing data are fully reported."
+        ]
+    },
+    {
+        "section": "Results",
+        "item": "Report numbers of outcome events or summary measures over time.",
+        "guidance": "Present main outcome data (events, summary measures).",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Outcome events or summary measures are not reported.",
+            "Some outcome events are reported, but data is incomplete.",
+            "Outcome events and summary measures are fully and clearly reported."
+        ]
+    },
+    {
+        "section": "Results",
+        "item": "Give unadjusted estimates and, if applicable, confounder-adjusted estimates and their precision (e.g., 95% confidence interval). Report category boundaries when continuous variables were categorized. If relevant, consider translating estimates of relative risk into absolute risk.",
+        "guidance": "Show both crude and adjusted results with precision (CIs), and define any group boundaries.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Estimates and precision are not reported.",
+            "Estimates are given, but adjusted results or CIs are missing or incomplete.",
+            "Both unadjusted and adjusted estimates, precision, and category boundaries are fully reported."
+        ]
+    },
+    {
+        "section": "Results",
+        "item": "Report other analyses done (e.g., subgroup analyses and sensitivity analyses).",
+        "guidance": "Describe any secondary, subgroup, or sensitivity analyses.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "No additional analyses are reported.",
+            "Some secondary analyses are described, but not all relevant analyses.",
+            "All secondary, subgroup, and sensitivity analyses are clearly reported."
+        ]
+    },
+    # DISCUSSION (4 items)
+    {
+        "section": "Discussion",
+        "item": "Summarize key results with reference to study objectives.",
+        "guidance": "Recap the main findings in light of the objectives.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Key results are not summarized.",
+            "Results are summarized but not linked to study objectives.",
+            "Key results are well summarized with clear reference to objectives."
+        ]
+    },
+    {
+        "section": "Discussion",
+        "item": "Discuss limitations of the study, taking into account sources of potential bias or imprecision. Discuss both direction and magnitude of any potential bias.",
+        "guidance": "Acknowledge weaknesses and possible biases; discuss direction and size.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Study limitations are not discussed.",
+            "Some limitations are discussed, but bias or imprecision are not fully considered.",
+            "Limitations, potential bias, and their direction and magnitude are thoroughly discussed."
+        ]
+    },
+    {
+        "section": "Discussion",
+        "item": "Give a cautious overall interpretation of results considering objectives, limitations, multiplicity of analyses, results from similar studies, and other relevant evidence.",
+        "guidance": "Discuss meaning and context, but avoid overstating conclusions.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Overall interpretation is missing or overstates conclusions.",
+            "Interpretation is present but does not fully consider limitations or other evidence.",
+            "Interpretation is cautious and well-contextualized with study limitations and existing literature."
+        ]
+    },
+    {
+        "section": "Discussion",
+        "item": "Discuss the generalizability (external validity) of the study results.",
+        "guidance": "Comment on how well results may apply elsewhere.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "No discussion of generalizability or external validity.",
+            "Generalizability is mentioned but not fully discussed.",
+            "Generalizability and external validity are clearly discussed."
+        ]
+    },
+    # OTHER INFORMATION (1 item)
+    {
+        "section": "Other Information",
+        "item": "Give the source of funding and the role of the funders for the present study and, if applicable, for the original study on which the present article is based.",
+        "guidance": "State how the study was funded and any role of the sponsor.",
+        "link": "https://www.strobe-statement.org/checklists/",
+        "tag_options": [
+            "Funding information is not provided.",
+            "Funding is stated, but the role of funders is not described.",
+            "Funding sources and funders' roles are fully described."
+        ]
+    }
 ]
 
 score_labels = {1: "1 = Not addressed", 2: "2 = Partially", 3: "3 = Fully addressed"}
@@ -38,7 +284,7 @@ for i, item in enumerate(STROBE_ITEMS):
 with st.form("strobe_form"):
     st.markdown("### Self-Assessment Checklist")
     for section, items in section_items.items():
-        with st.expander(section, expanded=False):  # Now collapsed by default!
+        with st.expander(section, expanded=False):  # Collapsed by default!
             for idx, item in items:
                 c1, c2, c3 = st.columns([3, 1, 2])
                 with c1:
