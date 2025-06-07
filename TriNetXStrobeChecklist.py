@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
-# ---- Full, clean STROBE Checklist ----
+# ---- Full STROBE Checklist ----
 STROBE_ITEMS = [
     {"section": "Title and Abstract", "item": "1. Indicate the study’s design with a commonly used term in the title or the abstract.", "guidance": "Clearly state the study design (e.g., cohort, case-control, cross-sectional) in the title or abstract.", "link": "https://www.strobe-statement.org/checklists/"},
     {"section": "Title and Abstract", "item": "2. Provide in the abstract an informative and balanced summary of what was done and what was found.", "guidance": "Summarize study purpose, methods, key results, and conclusions in the abstract.", "link": "https://www.strobe-statement.org/checklists/"},
@@ -28,83 +27,85 @@ STROBE_ITEMS = [
     {"section": "Other Information", "item": "22. Give the source of funding and the role of the funders for the present study and, if applicable, for the original study on which the present article is based.", "guidance": "State how the study was funded and any role of the sponsor.", "link": "https://www.strobe-statement.org/checklists/"},
 ]
 
-st.set_page_config(page_title="STROBE Compact Self-Assessment", layout="wide")
-st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Compact Table)")
+st.set_page_config(page_title="STROBE Self-Assessment (Simple)", layout="wide")
+st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Simple Table)")
 
 st.markdown("""
-This tool helps you assess your TriNetX project using the full STROBE checklist in a single compact table.  
-- **Score**: 1 (Not addressed), 2 (Partially), 3 (Fully addressed)  
-- **Add comments** in-line  
-- **Click a row** to see detailed guidance  
-- **Export results** as CSV  
+Use this checklist to self-assess your TriNetX project using the STROBE Statement.
+- **Score:** 1 (Not addressed), 2 (Partially), 3 (Fully addressed)
+- **Add comments** as needed
+- **Download as CSV**
 """)
 
-# Prepare DataFrame for grid
-df = pd.DataFrame([
-    {
-        "Section": item["section"],
-        "Checklist Item": item["item"],
-        "Score": 2,
-        "Comments": "",
-        "Guidance": item["guidance"],
-        "Link": item["link"],
-    }
-    for item in STROBE_ITEMS
-])
+score_labels = {1: "1 = Not addressed", 2: "2 = Partially", 3: "3 = Fully addressed"}
 
-# Build grid options
-gb = GridOptionsBuilder.from_dataframe(df)
-gb.configure_column("Score", editable=True, cellEditor='agSelectCellEditor',
-                    cellEditorParams={'values': [1, 2, 3]})
-gb.configure_column("Comments", editable=True)
-gb.configure_column("Checklist Item", width=420, wrapText=True, autoHeight=True)
-gb.configure_column("Guidance", hide=True)
-gb.configure_column("Link", hide=True)
-gb.configure_selection(selection_mode="single", use_checkbox=True)
-gridOptions = gb.build()
+# Initialize session state for repeat use
+if "scores" not in st.session_state:
+    st.session_state.scores = [2] * len(STROBE_ITEMS)
+if "comments" not in st.session_state:
+    st.session_state.comments = [""] * len(STROBE_ITEMS)
 
-# Display grid
-response = AgGrid(
-    df,
-    gridOptions=gridOptions,
-    update_mode=GridUpdateMode.VALUE_CHANGED | GridUpdateMode.SELECTION_CHANGED,
-    fit_columns_on_grid_load=True,
-    allow_unsafe_jscode=True,
-    height=600,
-    theme="streamlit"
-)
-
-# Guidance for selected row
-selected = response["selected_rows"]
-if selected:
-    st.info(f"**Guidance for selected item:**\n\n{selected[0]['Guidance']}\n\n[More Info]({selected[0]['Link']})")
-
-# Compile new DataFrame
-df_updated = pd.DataFrame(response['data'])
-
-# Summarize scores
-percent_fully = round(100 * (df_updated["Score"] == 3).sum() / len(df_updated), 1)
-st.write(f"**Percent fully addressed:** {percent_fully}%")
-st.write(f"**Average score:** {round(df_updated['Score'].mean(), 2)} / 3")
-
-low_score_df = df_updated[df_updated["Score"] < 3]
-if not low_score_df.empty:
-    st.warning("### Areas for Improvement")
-    for idx, row in low_score_df.iterrows():
-        st.markdown(
-            f"- **{row['Section']}**: {row['Checklist Item']}\n"
-            f"  - Guidance: {row['Guidance']}\n"
-            f"  - Your score: {row['Score']}\n"
-            f"  - Your comment: {row['Comments']}"
+with st.form("strobe_form"):
+    st.write("### Self-Assessment Checklist")
+    for idx, item in enumerate(STROBE_ITEMS):
+        cols = st.columns([3, 1])
+        cols[0].markdown(f"**{item['section']}**: [{item['item']}]({item['link']})")
+        score = cols[1].selectbox(
+            "Score",
+            [1, 2, 3],
+            index=st.session_state.scores[idx] - 1,
+            format_func=lambda x: score_labels[x],
+            key=f"score_{idx}"
         )
-else:
-    st.success("All items fully addressed! ✅")
+        with st.expander("Guidance / Add Comment", expanded=False):
+            st.markdown(f"{item['guidance']}")
+            comment = st.text_area(
+                "Comments (optional)",
+                value=st.session_state.comments[idx],
+                key=f"comment_{idx}"
+            )
+        st.session_state.scores[idx] = score
+        st.session_state.comments[idx] = comment
+    submitted = st.form_submit_button("Submit Self-Assessment")
 
-# Download as CSV
-csv = df_updated.to_csv(index=False).encode()
-st.download_button(
-    label="📥 Download as CSV",
-    data=csv,
-    file_name="strobe_self_assessment.csv",
-    mime="text/csv",
-)
+if submitted:
+    # Build output table
+    df = pd.DataFrame([
+        {
+            "Section": item["section"],
+            "Checklist Item": item["item"],
+            "Score": st.session_state.scores[idx],
+            "Comments": st.session_state.comments[idx],
+            "Guidance Link": item["link"]
+        }
+        for idx, item in enumerate(STROBE_ITEMS)
+    ])
+    st.success("Assessment Complete!")
+    st.dataframe(df, use_container_width=True)
+
+    percent_fully = round(100 * (df['Score'] == 3).sum() / len(df), 1)
+    st.write(f"**Percent fully addressed:** {percent_fully}%")
+    st.write(f"**Average score:** {round(df['Score'].mean(), 2)} / 3")
+
+    # Highlight areas for improvement
+    low_scores = df[df["Score"] < 3]
+    if not low_scores.empty:
+        st.warning("### Areas for Improvement")
+        for _, row in low_scores.iterrows():
+            st.markdown(
+                f"- **{row['Section']}**: [{row['Checklist Item']}]({row['Guidance Link']})  \n"
+                f"  - Guidance: {STROBE_ITEMS[_]['guidance']}\n"
+                f"  - Your score: {row['Score']}\n"
+                f"  - Your comment: {row['Comments']}"
+            )
+    else:
+        st.success("All items fully addressed! ✅")
+
+    # CSV download
+    csv = df.to_csv(index=False).encode()
+    st.download_button(
+        label="📥 Download as CSV",
+        data=csv,
+        file_name="strobe_self_assessment.csv",
+        mime="text/csv",
+    )
