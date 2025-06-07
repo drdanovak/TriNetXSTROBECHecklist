@@ -377,4 +377,25 @@ if submitted:
     st.dataframe(df, use_container_width=True)
 
     percent_fully = round(100 * (df['Score'] == 3).sum() / len(df), 1)
-    st.write(f
+    st.write(f"**Percent fully addressed:** {percent_fully}%")
+    st.write(f"**Average score:** {round(df['Score'].mean(), 2)} / 3")
+
+    low_scores = df[df["Score"] < 3]
+    if not low_scores.empty:
+        st.warning("### Areas for Improvement")
+        for i, row in low_scores.iterrows():
+            st.markdown(
+                f"- **{row['Section']}**: [{row['Checklist Item']}]({row['Guidance Link']})  \n"
+                f"  - Your score: {row['Score']}\n"
+                f"  - Your comment: {row['Comments']}"
+            )
+    else:
+        st.success("All items fully addressed! ✅")
+
+    csv = df.to_csv(index=False).encode()
+    st.download_button(
+        label="📥 Download as CSV",
+        data=csv,
+        file_name="strobe_self_assessment.csv",
+        mime="text/csv",
+    )
