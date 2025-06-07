@@ -366,8 +366,7 @@ with st.form("strobe_form"):
                         if tags:
                             st.markdown("**Tags:** " + ", ".join(tags))
                         comment = st.session_state.comments[idx]
-                        if comment:
-                            st.markdown("**Comments:** " + comment)
+                        st.markdown("**Comments:**<br>" + (comment if comment else "*No comments provided.*"), unsafe_allow_html=True)
                 st.markdown("---")
             if not any_rendered:
                 st.info("All items in this section are fully addressed (score = 3).")
