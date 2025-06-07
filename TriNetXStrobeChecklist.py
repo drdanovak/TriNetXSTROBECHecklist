@@ -1,8 +1,6 @@
+import streamlit as st
 import pandas as pd
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
-import pdfkit
-import tempfile
-import os
 
 # ---- Full, clean STROBE Checklist ----
 STROBE_ITEMS = [
@@ -38,7 +36,7 @@ This tool helps you assess your TriNetX project using the full STROBE checklist 
 - **Score**: 1 (Not addressed), 2 (Partially), 3 (Fully addressed)  
 - **Add comments** in-line  
 - **Click a row** to see detailed guidance  
-- **Export results** as CSV or PDF  
+- **Export results** as CSV  
 """)
 
 # Prepare DataFrame for grid
@@ -110,55 +108,3 @@ st.download_button(
     file_name="strobe_self_assessment.csv",
     mime="text/csv",
 )
-
-# PDF Export
-def df_to_html(df, low_score_df):
-    html = f"""
-    <html>
-    <head>
-        <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        table {{ border-collapse: collapse; width: 100%; }}
-        th, td {{ border: 1px solid #ccc; padding: 8px; }}
-        th {{ background-color: #f2f2f2; }}
-        </style>
-    </head>
-    <body>
-    <h1>STROBE Self-Assessment Results</h1>
-    {df.to_html(index=False, escape=False)}
-    <h2>Areas for Improvement</h2>
-    """
-    if not low_score_df.empty:
-        html += "<ul>"
-        for idx, row in low_score_df.iterrows():
-            html += f"<li><b>{row['Section']}</b>: {row['Checklist Item']}<br>"
-            html += f"Guidance: {row['Guidance']}<br>"
-            html += f"Your score: {row['Score']}<br>"
-            html += f"Your comment: {row['Comments']}</li><br>"
-        html += "</ul>"
-    else:
-        html += "<p>All items fully addressed! ✅</p>"
-    html += "</body></html>"
-    return html
-
-if st.button("📄 Download as PDF"):
-    with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as tf:
-        html = df_to_html(df_updated, low_score_df)
-        tf.write(html.encode())
-        tf.flush()
-        pdf_path = tf.name.replace(".html", ".pdf")
-        try:
-            pdfkit.from_file(tf.name, pdf_path)
-            with open(pdf_path, "rb") as pdf_file:
-                st.download_button(
-                    label="Download PDF",
-                    data=pdf_file.read(),
-                    file_name="strobe_self_assessment.pdf",
-                    mime="application/pdf"
-                )
-            os.remove(pdf_path)
-        except Exception as e:
-            st.error(f"PDF generation failed: {e}. "
-                     "Is `wkhtmltopdf` installed on the server? (Try CSV instead.)")
-        finally:
-            os.remove(tf.name)
