@@ -251,6 +251,12 @@ STROBE_ITEMS = [
 score_labels = {1: "1 = Not addressed", 2: "2 = Partially", 3: "3 = Fully addressed"}
 score_colors = {1: "#e74c3c", 2: "#f1c40f", 3: "#2ecc40"}  # Red, Yellow, Green
 
+# --- Sections in first-appearance order ---
+sections = []
+for item in STROBE_ITEMS:
+    if item["section"] not in sections:
+        sections.append(item["section"])
+
 # --- Session State ---
 n_items = len(STROBE_ITEMS)
 if "scores" not in st.session_state or len(st.session_state.scores) != n_items:
@@ -262,24 +268,17 @@ if "selected_tags" not in st.session_state or len(st.session_state.selected_tags
 if "manual_comment_edit" not in st.session_state or len(st.session_state.manual_comment_edit) != n_items:
     st.session_state.manual_comment_edit = [False] * n_items
 
-sections = []
-for item in STROBE_ITEMS:
-    if item["section"] not in sections:
-        sections.append(item["section"])
-
 if "expand_states" not in st.session_state or len(st.session_state.expand_states) != len(sections):
     st.session_state.expand_states = [False] * len(sections)
 
 st.set_page_config(page_title="STROBE Self-Assessment", layout="wide")
-st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Enhanced UX)")
+st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects")
 
 # --- Toolbar ---
-col1, col2, col3 = st.columns([1,2,2])
+col1, col2 = st.columns([1,2])
 with col1:
-    print_mode = st.checkbox("🖨️ Print-Friendly Mode", value=False)
-with col2:
     show_incomplete_only = st.checkbox("Show only incomplete items (score < 3)", value=False)
-with col3:
+with col2:
     toc_mode = st.checkbox("📑 Show Table of Contents", value=True)
 
 # Expand/Collapse all buttons
@@ -294,7 +293,7 @@ with colB:
 # --- Sidebar: TOC ---
 if toc_mode:
     st.sidebar.markdown("## 📑 Jump to Section")
-    for i, sec in enumerate(sections):
+    for sec in sections:
         st.sidebar.markdown(f"- [{sec}](#{sec.replace(' ', '-')})", unsafe_allow_html=True)
 
 # --- Group items by section ---
@@ -322,55 +321,41 @@ with st.form("strobe_form"):
                     )
                     st.markdown(f"<a href='{item['link']}' style='font-size:0.85em;' target='_blank'>[STROBE Guidance]</a>", unsafe_allow_html=True)
                 with c2:
-                    if not print_mode:
-                        color = score_colors[st.session_state.scores[idx]]
-                        st.markdown(
-                            f"<span style='font-size:1.5em; color:{color};'>●</span>",
-                            unsafe_allow_html=True,
-                        )
-                        score = st.selectbox(
-                            "",
-                            [1, 2, 3],
-                            index=st.session_state.scores[idx] - 1,
-                            format_func=lambda x: score_labels[x],
-                            key=f"score_{idx}"
-                        )
-                        st.session_state.scores[idx] = score
-                    else:
-                        score = st.session_state.scores[idx]
-                        st.markdown(
-                            f"<span style='font-size:1.1em;'>{score_labels[score]}</span>",
-                            unsafe_allow_html=True,
-                        )
+                    color = score_colors[st.session_state.scores[idx]]
+                    st.markdown(
+                        f"<span style='font-size:1.5em; color:{color};'>●</span>",
+                        unsafe_allow_html=True,
+                    )
+                    score = st.selectbox(
+                        "",
+                        [1, 2, 3],
+                        index=st.session_state.scores[idx] - 1,
+                        format_func=lambda x: score_labels[x],
+                        key=f"score_{idx}"
+                    )
+                    st.session_state.scores[idx] = score
                 with c3:
-                    if not print_mode:
-                        st.markdown("**Select feedback tags:**")
-                        tags = []
-                        for tag_idx, tag in enumerate(item["tag_options"]):
-                            checked = tag in st.session_state.selected_tags[idx]
-                            new_checked = st.checkbox(tag, value=checked, key=f"tag_{idx}_{tag_idx}")
-                            if new_checked:
-                                tags.append(tag)
-                        if not st.session_state.manual_comment_edit[idx]:
-                            comment_val = "; ".join(tags)
-                            st.session_state.comments[idx] = comment_val
-                        st.session_state.selected_tags[idx] = tags
-                        comment_input = st.text_area(
-                            "Comments / Feedback",
-                            value=st.session_state.comments[idx],
-                            key=f"comment_{idx}"
-                        )
-                        if comment_input != "; ".join(st.session_state.selected_tags[idx]):
-                            st.session_state.manual_comment_edit[idx] = True
-                        else:
-                            st.session_state.manual_comment_edit[idx] = False
-                        st.session_state.comments[idx] = comment_input
+                    st.markdown("**Select feedback tags:**")
+                    tags = []
+                    for tag_idx, tag in enumerate(item["tag_options"]):
+                        checked = tag in st.session_state.selected_tags[idx]
+                        new_checked = st.checkbox(tag, value=checked, key=f"tag_{idx}_{tag_idx}")
+                        if new_checked:
+                            tags.append(tag)
+                    if not st.session_state.manual_comment_edit[idx]:
+                        comment_val = "; ".join(tags)
+                        st.session_state.comments[idx] = comment_val
+                    st.session_state.selected_tags[idx] = tags
+                    comment_input = st.text_area(
+                        "Comments / Feedback",
+                        value=st.session_state.comments[idx],
+                        key=f"comment_{idx}"
+                    )
+                    if comment_input != "; ".join(st.session_state.selected_tags[idx]):
+                        st.session_state.manual_comment_edit[idx] = True
                     else:
-                        tags = st.session_state.selected_tags[idx]
-                        if tags:
-                            st.markdown("**Tags:** " + ", ".join(tags))
-                        comment = st.session_state.comments[idx]
-                        st.markdown("**Comments:**<br>" + (comment if comment else "*No comments provided.*"), unsafe_allow_html=True)
+                        st.session_state.manual_comment_edit[idx] = False
+                    st.session_state.comments[idx] = comment_input
                 st.markdown("---")
             if not any_rendered:
                 st.info("All items in this section are fully addressed (score = 3).")
@@ -392,25 +377,4 @@ if submitted:
     st.dataframe(df, use_container_width=True)
 
     percent_fully = round(100 * (df['Score'] == 3).sum() / len(df), 1)
-    st.write(f"**Percent fully addressed:** {percent_fully}%")
-    st.write(f"**Average score:** {round(df['Score'].mean(), 2)} / 3")
-
-    low_scores = df[df["Score"] < 3]
-    if not low_scores.empty:
-        st.warning("### Areas for Improvement")
-        for i, row in low_scores.iterrows():
-            st.markdown(
-                f"- **{row['Section']}**: [{row['Checklist Item']}]({row['Guidance Link']})  \n"
-                f"  - Your score: {row['Score']}\n"
-                f"  - Your comment: {row['Comments']}"
-            )
-    else:
-        st.success("All items fully addressed! ✅")
-
-    csv = df.to_csv(index=False).encode()
-    st.download_button(
-        label="📥 Download as CSV",
-        data=csv,
-        file_name="strobe_self_assessment.csv",
-        mime="text/csv",
-    )
+    st.write(f
