@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 from collections import defaultdict
 
-# ---- Full STROBE Checklist Items with tags ----
+# 22 STROBE checklist items grouped by section, with tag options for feedback
 STROBE_ITEMS = [
+    # TITLE AND ABSTRACT (2 items)
     {
         "section": "Title and Abstract",
         "item": "Indicate the study’s design with a commonly used term in the title or the abstract.",
@@ -26,6 +27,7 @@ STROBE_ITEMS = [
             "The abstract gives a clear, informative, and balanced summary."
         ]
     },
+    # INTRODUCTION (2 items)
     {
         "section": "Introduction",
         "item": "Explain the scientific background and rationale for the investigation being reported.",
@@ -48,6 +50,7 @@ STROBE_ITEMS = [
             "Objectives and hypotheses are clearly stated and specific."
         ]
     },
+    # METHODS (8 items)
     {
         "section": "Methods",
         "item": "Present key elements of study design early in the paper.",
@@ -136,6 +139,7 @@ STROBE_ITEMS = [
             "All statistical methods, confounding, and missing data approaches are detailed."
         ]
     },
+    # RESULTS (5 items)
     {
         "section": "Results",
         "item": "Report numbers of individuals at each stage of study (e.g., eligible, included, follow-up, analyzed). Give reasons for non-participation at each stage. Consider use of a flow diagram.",
@@ -191,6 +195,7 @@ STROBE_ITEMS = [
             "All secondary, subgroup, and sensitivity analyses are clearly reported."
         ]
     },
+    # DISCUSSION (4 items)
     {
         "section": "Discussion",
         "item": "Summarize key results with reference to study objectives.",
@@ -235,6 +240,7 @@ STROBE_ITEMS = [
             "Generalizability and external validity are clearly discussed."
         ]
     },
+    # OTHER INFORMATION (1 item)
     {
         "section": "Other Information",
         "item": "Give the source of funding and the role of the funders for the present study and, if applicable, for the original study on which the present article is based.",
@@ -309,18 +315,19 @@ with st.form("strobe_form"):
                         comment_val = "; ".join(tags)
                         st.session_state.comments[idx] = comment_val
                     st.session_state.selected_tags[idx] = tags
-                    with st.expander("Comments / Feedback", expanded=False):
-                        comment_input = st.text_area(
-                            "",
-                            value=st.session_state.comments[idx],
-                            key=f"comment_{idx}"
-                        )
-                        # If comment box is edited, switch to manual mode for this item
-                        if comment_input != "; ".join(st.session_state.selected_tags[idx]):
-                            st.session_state.manual_comment_edit[idx] = True
-                        else:
-                            st.session_state.manual_comment_edit[idx] = False
-                        st.session_state.comments[idx] = comment_input
+
+                    # Comments box (not nested in an expander)
+                    comment_input = st.text_area(
+                        "Comments / Feedback",
+                        value=st.session_state.comments[idx],
+                        key=f"comment_{idx}"
+                    )
+                    # If comment box is edited, switch to manual mode for this item
+                    if comment_input != "; ".join(st.session_state.selected_tags[idx]):
+                        st.session_state.manual_comment_edit[idx] = True
+                    else:
+                        st.session_state.manual_comment_edit[idx] = False
+                    st.session_state.comments[idx] = comment_input
                 st.session_state.scores[idx] = score
                 st.markdown("---")
     submitted = st.form_submit_button("Submit Self-Assessment")
