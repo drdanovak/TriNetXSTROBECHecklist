@@ -266,7 +266,7 @@ if "manual_comment_edit" not in st.session_state:
     st.session_state.manual_comment_edit = [False] * len(STROBE_ITEMS)
 
 st.set_page_config(page_title="STROBE Self-Assessment (Tag/Comment System)", layout="wide")
-st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Multi-Tag + Comments)")
+st.title("📝 Novak's STROBE Self-Assessment Tool for TriNetX Projects")
 
 st.markdown("""
 **Instructions:**  
@@ -274,6 +274,7 @@ st.markdown("""
 - Select your score (1 = Not addressed, 2 = Partially, 3 = Fully).
 - For feedback, check one or more relevant tags, or type your own comments below the tags.
 - Download your completed checklist as CSV.
+- Created at the UC Riverside School of Medicine by Dr. Daniel Novak, 2025 
 """)
 
 # Group items by section
