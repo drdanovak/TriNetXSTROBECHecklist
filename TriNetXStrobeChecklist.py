@@ -262,7 +262,11 @@ if "selected_tags" not in st.session_state or len(st.session_state.selected_tags
 if "manual_comment_edit" not in st.session_state or len(st.session_state.manual_comment_edit) != n_items:
     st.session_state.manual_comment_edit = [False] * n_items
 
-sections = list({item["section"] for item in STROBE_ITEMS})
+sections = []
+for item in STROBE_ITEMS:
+    if item["section"] not in sections:
+        sections.append(item["section"])
+
 if "expand_states" not in st.session_state or len(st.session_state.expand_states) != len(sections):
     st.session_state.expand_states = [False] * len(sections)
 
