@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
+from collections import defaultdict
 
+# ---- Full STROBE Checklist Items with tags ----
 STROBE_ITEMS = [
     {
         "section": "Title and Abstract",
@@ -262,60 +264,65 @@ st.title("📝 STROBE Self-Assessment Tool for TriNetX Projects (Multi-Tag + Com
 
 st.markdown("""
 **Instructions:**  
-- Review each STROBE item and guidance.
+- Expand each section below and work through each checklist item.
 - Select your score (1 = Not addressed, 2 = Partially, 3 = Fully).
 - For feedback, check one or more relevant tags, or type your own comments below the tags.
 - Download your completed checklist as CSV.
 """)
 
+# Group items by section
+section_items = defaultdict(list)
+for i, item in enumerate(STROBE_ITEMS):
+    section_items[item["section"]].append((i, item))
+
 with st.form("strobe_form"):
     st.markdown("### Self-Assessment Checklist")
-    for idx, item in enumerate(STROBE_ITEMS):
-        c1, c2, c3 = st.columns([3, 1, 2])
-        with c1:
-            st.markdown(
-                f"**{item['section']}**<br>"
-                f"<span style='font-weight:bold;'>{item['item']}</span>"
-                f"<br><span style='font-size:0.85em; color: #555;'>{item['guidance']}</span>",
-                unsafe_allow_html=True
-            )
-            st.markdown(f"<a href='{item['link']}' style='font-size:0.85em;' target='_blank'>[STROBE Guidance]</a>", unsafe_allow_html=True)
-        with c2:
-            score = st.selectbox(
-                "",
-                [1, 2, 3],
-                index=st.session_state.scores[idx] - 1,
-                format_func=lambda x: score_labels[x],
-                key=f"score_{idx}"
-            )
-        with c3:
-            st.markdown("**Select feedback tags:**")
-            tags = []
-            for tag_idx, tag in enumerate(item["tag_options"]):
-                checked = tag in st.session_state.selected_tags[idx]
-                new_checked = st.checkbox(tag, value=checked, key=f"tag_{idx}_{tag_idx}")
-                if new_checked:
-                    tags.append(tag)
-            # Handle tag changes: only update comment field if not manually edited
-            # (or if user has just removed all tags)
-            if not st.session_state.manual_comment_edit[idx]:
-                comment_val = "; ".join(tags)
-                st.session_state.comments[idx] = comment_val
-            st.session_state.selected_tags[idx] = tags
-            with st.expander("Comments / Feedback", expanded=False):
-                comment_input = st.text_area(
-                    "",
-                    value=st.session_state.comments[idx],
-                    key=f"comment_{idx}"
-                )
-                # If comment box is edited, switch to manual mode for this item
-                if comment_input != "; ".join(st.session_state.selected_tags[idx]):
-                    st.session_state.manual_comment_edit[idx] = True
-                else:
-                    st.session_state.manual_comment_edit[idx] = False
-                st.session_state.comments[idx] = comment_input
-        st.session_state.scores[idx] = score
-        st.markdown("---")
+    for section, items in section_items.items():
+        with st.expander(section, expanded=True):
+            for idx, item in items:
+                c1, c2, c3 = st.columns([3, 1, 2])
+                with c1:
+                    st.markdown(
+                        f"<span style='font-weight:bold;'>{item['item']}</span>"
+                        f"<br><span style='font-size:0.85em; color: #555;'>{item['guidance']}</span>",
+                        unsafe_allow_html=True
+                    )
+                    st.markdown(f"<a href='{item['link']}' style='font-size:0.85em;' target='_blank'>[STROBE Guidance]</a>", unsafe_allow_html=True)
+                with c2:
+                    score = st.selectbox(
+                        "",
+                        [1, 2, 3],
+                        index=st.session_state.scores[idx] - 1,
+                        format_func=lambda x: score_labels[x],
+                        key=f"score_{idx}"
+                    )
+                with c3:
+                    st.markdown("**Select feedback tags:**")
+                    tags = []
+                    for tag_idx, tag in enumerate(item["tag_options"]):
+                        checked = tag in st.session_state.selected_tags[idx]
+                        new_checked = st.checkbox(tag, value=checked, key=f"tag_{idx}_{tag_idx}")
+                        if new_checked:
+                            tags.append(tag)
+                    # Handle tag changes: only update comment field if not manually edited
+                    if not st.session_state.manual_comment_edit[idx]:
+                        comment_val = "; ".join(tags)
+                        st.session_state.comments[idx] = comment_val
+                    st.session_state.selected_tags[idx] = tags
+                    with st.expander("Comments / Feedback", expanded=False):
+                        comment_input = st.text_area(
+                            "",
+                            value=st.session_state.comments[idx],
+                            key=f"comment_{idx}"
+                        )
+                        # If comment box is edited, switch to manual mode for this item
+                        if comment_input != "; ".join(st.session_state.selected_tags[idx]):
+                            st.session_state.manual_comment_edit[idx] = True
+                        else:
+                            st.session_state.manual_comment_edit[idx] = False
+                        st.session_state.comments[idx] = comment_input
+                st.session_state.scores[idx] = score
+                st.markdown("---")
     submitted = st.form_submit_button("Submit Self-Assessment")
 
 if submitted:
